@@ -353,14 +353,17 @@ def main(cfg: DictConfig) -> None:
             )
 
             console.print(Panel(ui_text("🔍 Generating trajectories visualization...", "Generating trajectories visualization..."), style="blue", box=PANEL_BOX))
-            traj_html = generate_trajectories_html_from_hf(
-                traj_dir=f"{cfg.run_name}/trajectories",
-                repo_id=base_config["inference"]["hf"]["repo_id"],
-                no_cache=True,
-            )
-            if cfg.use_wandb:
-                wandb.log({"trajectories_viewer": wandb.Html(traj_html)})
-                wandb_run.finish()
+            try:
+                traj_html = generate_trajectories_html_from_hf(
+                    traj_dir=f"{cfg.run_name}/trajectories",
+                    repo_id=base_config["inference"]["hf"]["repo_id"],
+                    no_cache=True,
+                )
+                if cfg.use_wandb:
+                    wandb.log({"trajectories_viewer": wandb.Html(traj_html)})
+                    wandb_run.finish()
+            except Exception as e:
+                logging.warning(f"Trajectory visualization failed (non-fatal): {e}")
 
             # Track artifact
             artifacts.append(("Inference", base_config["inference"]["hf"]["repo_id"], f"{cfg.run_name}/trajectories"))
