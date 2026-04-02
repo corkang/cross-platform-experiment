@@ -152,8 +152,9 @@ jobs:
           # Activate: Unix path first, Windows fallback
           source .venv/bin/activate 2>/dev/null || source .venv/Scripts/activate
           uv sync
-          # Install pinned pyright inside the venv
-          python -m pip install --quiet "pyright==$PYRIGHT_VERSION"
+          # Install pinned pyright inside the venv via uv.
+          # uv-managed virtualenvs may not include pip by default.
+          uv pip install "pyright==$PYRIGHT_VERSION"
           echo "pyright: $(python -m pyright --version 2>&1)" >> "$GITHUB_WORKSPACE/artifacts/environment_snapshot.txt"
 
       # ── 5. Prepare single-repo local manifest ──────────────────
