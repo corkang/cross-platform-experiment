@@ -91,7 +91,7 @@ def parse_script_from_trajectory(trajectory: List[Dict[str, Any]]) -> str:
     return "\n".join(format_command(command) for command in commands)
 
 
-def process_trajectories_to_scripts(trajectories_dataset: str, input_trajectories_dir: str):
+def process_trajectories_to_scripts(trajectories_dataset: str, input_trajectories_dir: str, local_output_path: str | None = None):
     scripts = []
     with tempfile.TemporaryDirectory() as temp_dir:
         for trajectory_file in tqdm(
@@ -123,6 +123,11 @@ def process_trajectories_to_scripts(trajectories_dataset: str, input_trajectorie
 
         with jsonlines.open(f"{temp_dir}/scripts.jsonl", "w") as writer:
             writer.write_all(scripts)
+
+        if local_output_path:
+            import shutil
+            os.makedirs(os.path.dirname(local_output_path), exist_ok=True)
+            shutil.copy2(f"{temp_dir}/scripts.jsonl", local_output_path)
 
         upload_file(
             path_in_repo=os.path.join(input_trajectories_dir, "scripts.jsonl"),

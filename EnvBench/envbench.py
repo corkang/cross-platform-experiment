@@ -13,7 +13,7 @@ from typing import Callable, Optional
 
 import hydra
 from hydra.core.config_store import ConfigStore
-from omegaconf import DictConfig, OmegaConf
+from omegaconf import DictConfig, OmegaConf, open_dict
 from rich import box
 from rich.align import Align
 from rich.console import Console
@@ -378,11 +378,13 @@ def main(cfg: DictConfig) -> None:
                     name=f"{cfg.tag} scripts",
                 )
             console.print(create_step_header("Processing", 2, "green"))
+            local_scripts_path = os.path.join(cfg.tmp_dir, f"scripts-{cfg.run_name}", "scripts.jsonl")
             run_command_with_progress(
                 process_trajectories_to_scripts,
                 (
                     base_config["inference"]["hf"]["repo_id"],
                     cfg.run_name,
+                    local_scripts_path,
                 ),
                 "Processing trajectories...",
                 progress,
@@ -390,14 +392,17 @@ def main(cfg: DictConfig) -> None:
                 data_path=cfg.data_path,
             )
             console.print(Panel(ui_text("📝 Generating scripts visualization...", "Generating scripts visualization..."), style="green", box=PANEL_BOX))
-            scripts_html = generate_scripts_html_from_hf(
-                scripts_file=f"{cfg.run_name}/scripts.jsonl",
-                repo_id=base_config["inference"]["hf"]["repo_id"],
-                no_cache=True,
-            )
-            if cfg.use_wandb:
-                wandb.log({"scripts_viewer": wandb.Html(scripts_html)})
-                wandb_run.finish()
+            try:
+                scripts_html = generate_scripts_html_from_hf(
+                    scripts_file=f"{cfg.run_name}/scripts.jsonl",
+                    repo_id=base_config["inference"]["hf"]["repo_id"],
+                    no_cache=True,
+                )
+                if cfg.use_wandb:
+                    wandb.log({"scripts_viewer": wandb.Html(scripts_html)})
+                    wandb_run.finish()
+            except Exception as e:
+                logging.warning(f"Scripts visualization failed (non-fatal): {e}")
 
             # Track artifact
             artifacts.append(("Processing", base_config["inference"]["hf"]["repo_id"], f"{cfg.run_name}/scripts.jsonl"))
@@ -405,6 +410,14 @@ def main(cfg: DictConfig) -> None:
 
         # Step 3: Evaluation
         if not cfg.skip_evaluation:
+            # If processing produced a local scripts.jsonl, use it instead of HF
+            if not cfg.skip_processing and 'local_scripts_path' in dir() and os.path.isfile(local_scripts_path):
+                with open_dict(cfg):
+                    cfg.evaluation.input.mode = "local"
+                    cfg.evaluation.input.local = local_scripts_path
+                base_config["evaluation"] = OmegaConf.to_container(cfg.evaluation, resolve=True)  # type: ignore
+                logging.info(f"Evaluation will read scripts from local file: {local_scripts_path}")
+
             if cfg.use_wandb:
                 wandb_run = wandb.init(
                     project=str(cfg.wandb_project),
@@ -424,14 +437,17 @@ def main(cfg: DictConfig) -> None:
             )
 
             console.print(Panel(ui_text("📊 Generating evaluation visualization...", "Generating evaluation visualization..."), style="yellow", box=PANEL_BOX))
-            eval_html = generate_logs_html_from_hf(
-                logs_file=f"{cfg.run_name}/results.jsonl",
-                repo_id=base_config["evaluation"]["output"]["hf"]["repo_id"],
-                no_cache=True,
-            )
-            if cfg.use_wandb:
-                wandb.log({"evaluation_viewer": wandb.Html(eval_html)})
-                wandb_run.finish()
+            try:
+                eval_html = generate_logs_html_from_hf(
+                    logs_file=f"{cfg.run_name}/results.jsonl",
+                    repo_id=base_config["evaluation"]["output"]["hf"]["repo_id"],
+                    no_cache=True,
+                )
+                if cfg.use_wandb:
+                    wandb.log({"evaluation_viewer": wandb.Html(eval_html)})
+                    wandb_run.finish()
+            except Exception as e:
+                logging.warning(f"Evaluation visualization failed (non-fatal): {e}")
 
             # Track artifact
             artifacts.append(
