@@ -1,0 +1,12 @@
+[
+  "mad-lab-fau/biopsykit",
+  "cookiecutter/cookiecutter",
+  "dagshub/client",
+  "mov-cli/mov-cli",
+  "robbievanleeuwen/section-properties",
+  "krub-data/skrub",
+  "vacanza/python-holidays",
+  "facebookresearch/hydra",
+  "pytest-dev/pytest-xdist",
+  "jageo/lobsterpy"
+]

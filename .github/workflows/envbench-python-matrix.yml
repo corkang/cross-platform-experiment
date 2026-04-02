@@ -1,0 +1,120 @@
+# DEPRECATED: This workflow was an early heuristic setup experiment.
+# It does NOT run the EnvBench bash agent and references scripts that
+# no longer exist (run_eval_*, collect_result.py).
+#
+# The active experiment workflow is envbench-python-native.yml.
+#
+# Kept for reference only — disabled by removing the push trigger.
+
+name: "[DEPRECATED] EnvBench Heuristic Setup"
+
+on:
+  workflow_dispatch:
+  # push trigger removed — this workflow should not run automatically.
+  # See envbench-python-native.yml for the active experiment.
+
+jobs:
+  experiment:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      max-parallel: 6
+      matrix:
+        os: [ubuntu-latest]
+        # os: [ubuntu-latest, macos-latest, windows-latest]
+        target:
+          - mad-lab-fau/biopsykit
+          - cookiecutter/cookiecutter
+          # - dagshub/client
+          # - mov-cli/mov-cli
+          # - robbievanleeuwen/section-properties
+          # - krub-data/skrub
+          # - vacanza/python-holidays
+          # - facebookresearch/hydra
+          # - pytest-dev/pytest-xdist
+          # - jageo/lobsterpy
+
+    steps:
+      - name: Checkout experiment repo
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install uv
+        shell: bash
+        run: |
+          python -m pip install --upgrade pip
+          pip install uv
+
+      - name: Install EnvBench dependencies
+        shell: bash
+        run: |
+          cd EnvBench
+          uv venv
+          source .venv/bin/activate || . .venv/Scripts/activate
+          uv sync
+
+      - name: Checkout target repository
+        shell: bash
+        run: |
+          python scripts/checkout_target.py "${{ matrix.target }}"
+
+      - name: Run setup on Linux
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          bash scripts/run_setup_linux.sh "${{ matrix.target }}"
+
+      - name: Run setup on macOS
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          bash scripts/run_setup_macos.sh "${{ matrix.target }}"
+
+      - name: Run setup on Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          ./scripts/run_setup_windows.ps1 "${{ matrix.target }}"
+
+      # NOTE: Evaluation and collection steps below reference scripts
+      # that do not exist in the repo. Kept for reference only.
+
+      # - name: Run evaluation on Linux
+      #   if: runner.os == 'Linux'
+      #   shell: bash
+      #   run: |
+      #     bash scripts/run_eval_linux.sh "${{ matrix.target }}"
+      #
+      # - name: Run evaluation on macOS
+      #   if: runner.os == 'macOS'
+      #   shell: bash
+      #   run: |
+      #     bash scripts/run_eval_macos.sh "${{ matrix.target }}"
+      #
+      # - name: Run evaluation on Windows
+      #   if: runner.os == 'Windows'
+      #   shell: pwsh
+      #   run: |
+      #     ./scripts/run_eval_windows.ps1 "${{ matrix.target }}"
+      #
+      # - name: Collect result
+      #   if: always()
+      #   shell: bash
+      #   run: |
+      #     python scripts/collect_result.py \
+      #       --os "${{ runner.os }}" \
+      #       --target "${{ matrix.target }}"
+
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: result-${{ runner.os }}-${{ matrix.target }}
+          path: |
+            outputs/**
+            logs/**
+            results/**

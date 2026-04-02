@@ -1,0 +1,9 @@
+defaults:
+  - jvm-bash
+  - _self_
+
+tag: oss/jvm-zeroshot
+
+inference:
+  agent:
+    agent_type: procedural-jvm

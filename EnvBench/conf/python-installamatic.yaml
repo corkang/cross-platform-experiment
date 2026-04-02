@@ -1,0 +1,11 @@
+defaults:
+  - python-bash
+  - _self_
+
+tag: oss/python-installamatic
+
+inference:
+  agent:
+    agent_type: installamatic
+    toolkit: installamatic
+    language: python

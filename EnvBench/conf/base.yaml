@@ -1,0 +1,123 @@
+defaults:
+ - _self_
+ - llm@inference.agent: gpt-4o-mini
+
+# Data paths
+tmp_dir: ${oc.env:TEMP_DIR,${hydra:runtime.cwd}/tmp}
+data_path: ${oc.env:DATA_ROOT,${hydra:runtime.cwd}/data}
+
+# Run configuration
+tag: oss/envsetup-python  # Static tag
+run_name: ${tag}_${inference.agent.model.model}_${now:%Y-%m-%d_%H-%M-%S}
+file_name: ${run_name} # Default config name
+traj_repo_id: JetBrains-Research/EnvBench-trajectories # Trajectories repo on HF
+
+# WandB configuration
+wandb_project: envsetup-oss  # Default wandb project name
+use_wandb: false
+
+# Steps to skip
+skip_inference: false
+skip_processing: false
+skip_evaluation: false
+
+# Number of workers for inference and evaluation
+inference_workers: 16
+eval_workers: 16
+
+inference:
+  agent:
+    agent_type: python
+    toolkit: bash
+    model:
+      _target_: langchain_openai.ChatOpenAI
+      model: gpt-4o-mini-2024-07-18
+      temperature: 0
+    instruction_provider:
+      _target_: inference.src.context_providers.build_instructions.EmptyEnvSetupInstructionProvider
+    max_iterations: 30
+  data_source:
+    # type: hf
+    type: local
+    hf:
+      _target_: env_setup_utils.data_sources.HFDataSource
+      hub_name: JetBrains-Research/EnvBench
+      configs:
+        - splits
+      split: python_baseline_failure
+    local:
+      _target_: env_setup_utils.data_sources.LocalFileDataSource
+      path: python_repos.jsonl
+  docker:
+    image: ghcr.io/jetbrains-research/envbench-python:latest
+    error_message:
+    command:
+    env_vars: {}
+    repository_workdir: true
+    container_start_timeout: 300
+    max_num_chars_bash_output: 16000
+    bash_timeout: 300
+    hf_name: JetBrains-Research/EnvBench
+    output_dir: ${data_path}/tmp-${run_name}/repos
+    language: python
+    clear_repo: true
+  hf:
+    upload: true
+    repo_id: ${traj_repo_id}
+    path_in_repo: ${run_name}
+
+  # langsmith_project: env-setup-py-oss
+
+  log_trajectory: true
+  logging_dir: ${tmp_dir}/trajectories-${run_name}
+  max_concurrent: ${inference_workers}
+  rewrite_trajectories: true
+scripts_processing:
+  input_trajectories_dir: ${run_name}
+evaluation:
+  do_dry_run: false
+  language: python
+  eval_tool: ${oc.env:EVAL_TOOL,opensource}
+  input:
+    use_scripts: true
+    mode: hf
+    hf:
+      repo_id: ${traj_repo_id}
+      path_in_repo: ${run_name}/scripts.jsonl
+    local: path/to/local/file
+    repos_archives:
+      repo_id: "JetBrains-Research/EnvBench"
+    columns:
+      repo_name: repository
+      commit_sha: revision
+      script: script
+  output:
+    mode: hf
+    hf:
+      repo_id: ${traj_repo_id}
+      path_in_repo: ${run_name}
+    keep_local_archives: false
+    keep_local_jsonl: false
+  docker:
+    create_container_timeout: 180
+    container_timeout: 600
+    image:
+      python: 'ghcr.io/jetbrains-research/envbench-python'
+      jvm: 'ghcr.io/jetbrains-research/envbench-jvm'
+  operation:
+    dirs:
+      tmp: '${tmp_dir}/tmp-${run_name}'
+      repo_data: '${data_path}/repo_data'
+      json_results: '${tmp_dir}/tmp-${run_name}/results/json'
+      eval_results: '${tmp_dir}/tmp-${run_name}/results/eval'
+    pool_config:
+      max_workers: ${eval_workers}
+      chunksize: 1
+    rewrite_results: true
+  exit_codes:
+    timeout: -127
+    unknown_failure: -999
+    docker_failure: -888
+    create_container_failure: -777
+    download_failure: -666
+    script_failure: -555

@@ -1,0 +1,17 @@
+defaults:
+  - base
+  - _self_
+
+tag: oss/jvm-bash
+
+inference:
+  agent:
+    agent_type: jvm
+  data_source:
+    hf:
+      split: jvm_baseline_failure
+  docker:
+    image: ghcr.io/jetbrains-research/envbench-jvm:latest
+
+evaluation:
+  language: jvm

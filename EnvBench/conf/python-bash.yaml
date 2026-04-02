@@ -1,0 +1,17 @@
+defaults:
+  - base
+  - _self_
+
+# Repeats defaults, but for stability
+
+tag: oss/python-bash
+
+inference:
+  agent:
+    agent_type: python
+  data_source:
+    hf:
+      split: python_baseline_failure
+
+evaluation:
+  language: python

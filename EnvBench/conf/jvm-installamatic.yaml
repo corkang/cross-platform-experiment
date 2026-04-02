@@ -1,0 +1,11 @@
+defaults:
+  - jvm-bash
+  - _self_
+
+tag: oss/jvm-installamatic
+
+inference:
+  agent:
+    agent_type: installamatic
+    toolkit: installamatic
+    language: jvm
