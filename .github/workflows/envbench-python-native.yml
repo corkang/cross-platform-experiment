@@ -54,13 +54,15 @@ jobs:
           with open('manifests/selected_repos.jsonl') as f:
               for line in f:
                   line = line.strip()
-                  if not line:
+                  if not line or line.startswith('//') or line.startswith('#'):
                       continue
                   entry = json.loads(line)
                   repo = entry['repository']
                   rev  = entry['revision']
                   safe = repo.replace('/', '__')
                   rows.append({'repository': repo, 'revision': rev, 'safe_name': safe})
+          if not rows:
+              raise SystemExit('selected_repos.jsonl produced an empty matrix')
           print(json.dumps(rows))
           " > repo_matrix.json
           echo "matrix=$(cat repo_matrix.json)" >> "$GITHUB_OUTPUT"
