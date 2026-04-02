@@ -184,7 +184,7 @@ jobs:
             "run_name=${RUN_NAME}" \
             "tag=gha-python-bash" \
             "use_wandb=false" \
-            "fancy_output=false" \
+            "+fancy_output=false" \
             "inference_workers=1" \
             "eval_workers=1" \
             "data_path=${GITHUB_WORKSPACE}/data" \
