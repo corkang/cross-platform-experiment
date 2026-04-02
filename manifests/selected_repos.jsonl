@@ -1,10 +1,10 @@
 {"repository": "pytest-dev/pytest-xdist", "revision": "c7b4f6114479d4053f0ef8411ed5e0a410b207f4"}
-{"repository": "facebookresearch/hydra", "revision": "2e682d84e789d82dd11ab1f329f2dd1966fa6b54"}
-{"repository": "jageo/lobsterpy", "revision": "55d8d2e119aa1147166994d57fbdbe10931cc748"}
-{"repository": "mad-lab-fau/biopsykit", "revision": "2ad99fba5f55328109c72bd3cbb72ba2444da078"}
-{"repository": "skrub-data/skrub", "revision": "0d69d97129aa638167e1e721686acb066daed007"}
-{"repository": "vacanza/python-holidays", "revision": "472e89d889cf3a5c5301d54bc642f6c149f55ee5"}
-{"repository": "mov-cli/mov-cli", "revision": "32f8af4f15804dd6ce88d8f781a12b918119e64c"}
-{"repository": "cookiecutter/cookiecutter", "revision": "f49dcf975ef0390cd19c8f246a42638a1c8e8a42"}
-{"repository": "robbievanleeuwen/section-properties", "revision": "0a41ea141394ccca9df1625e1d44ea132a2ccf37"}
-{"repository": "dagshub/client", "revision": "f8d89c53c733e58edf36f409f7a27cd30d80eced"}
+// {"repository": "facebookresearch/hydra", "revision": "2e682d84e789d82dd11ab1f329f2dd1966fa6b54"}
+// {"repository": "jageo/lobsterpy", "revision": "55d8d2e119aa1147166994d57fbdbe10931cc748"}
+// {"repository": "mad-lab-fau/biopsykit", "revision": "2ad99fba5f55328109c72bd3cbb72ba2444da078"}
+// {"repository": "skrub-data/skrub", "revision": "0d69d97129aa638167e1e721686acb066daed007"}
+// {"repository": "vacanza/python-holidays", "revision": "472e89d889cf3a5c5301d54bc642f6c149f55ee5"}
+// {"repository": "mov-cli/mov-cli", "revision": "32f8af4f15804dd6ce88d8f781a12b918119e64c"}
+// {"repository": "cookiecutter/cookiecutter", "revision": "f49dcf975ef0390cd19c8f246a42638a1c8e8a42"}
+// {"repository": "robbievanleeuwen/section-properties", "revision": "0a41ea141394ccca9df1625e1d44ea132a2ccf37"}
+// {"repository": "dagshub/client", "revision": "f8d89c53c733e58edf36f409f7a27cd30d80eced"}
