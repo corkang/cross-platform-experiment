@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 import queue
 import subprocess
+import sys
 import threading
 import time
 from typing import Callable, Optional
@@ -44,7 +45,19 @@ logger = logging.getLogger("pipeline")
 
 STEP_STYLES = {"inference": "blue", "processing": "green", "evaluation": "yellow"}
 
-STEP_EMOJIS = {"inference": "🤖", "processing": "🔄", "evaluation": "📊"}
+def _supports_unicode_output() -> bool:
+    encoding = (getattr(sys.stdout, "encoding", None) or "").lower()
+    return encoding.startswith("utf")
+
+
+UNICODE_OUTPUT = _supports_unicode_output()
+
+
+STEP_EMOJIS = {
+    "inference": "🤖" if UNICODE_OUTPUT else "[I]",
+    "processing": "🔄" if UNICODE_OUTPUT else "[P]",
+    "evaluation": "📊" if UNICODE_OUTPUT else "[E]",
+}
 
 # Global fancy output setting
 FANCY_OUTPUT = False
@@ -69,6 +82,10 @@ cs = ConfigStore.instance()
 cs.store(name="pipeline_config", node=PipelineConfig)
 
 
+def ui_text(unicode_text: str, ascii_text: str) -> str:
+    return unicode_text if UNICODE_OUTPUT else ascii_text
+
+
 def create_fancy_header(text: str, style: str = "magenta") -> Panel:
     """Create a fancy header with a double-line box and centered text"""
     return Panel(
@@ -76,16 +93,21 @@ def create_fancy_header(text: str, style: str = "magenta") -> Panel:
         style=style,
         box=DOUBLE,
         padding=(1, 2),
-        title="✨ Environment Setup Pipeline ✨",
+        title=ui_text("✨ Environment Setup Pipeline ✨", "Environment Setup Pipeline"),
         title_align="center",
     )
 
 
 def create_step_header(step: str, number: int, style: str) -> Panel:
     """Create a fancy step header with emoji and rounded box"""
-    emoji = STEP_EMOJIS.get(step.lower(), "🔧")
+    emoji = STEP_EMOJIS.get(step.lower(), "[*]")
     return Panel(
-        f"{emoji} Step {number}: {step}", style=style, box=ROUNDED, padding=(1, 2), title="⚡️", title_align="right"
+        f"{emoji} Step {number}: {step}",
+        style=style,
+        box=ROUNDED,
+        padding=(1, 2),
+        title=ui_text("⚡️", "*"),
+        title_align="right",
     )
 
 
@@ -124,7 +146,7 @@ def stream_subprocess_output(
             box=ROUNDED,
             title_align="center",
             padding=(1, 2),
-            subtitle="🔄 Live Output",
+            subtitle=ui_text("🔄 Live Output", "Live Output"),
             subtitle_align="right",
         )
         progress.console.print(panel)
@@ -148,7 +170,7 @@ def stream_subprocess_output(
                             box=ROUNDED,
                             title_align="center",
                             padding=(1, 2),
-                            subtitle="🔄 Live Output",
+                            subtitle=ui_text("🔄 Live Output", "Live Output"),
                             subtitle_align="right",
                         )
                     )
@@ -173,7 +195,7 @@ def stream_subprocess_output(
                     box=ROUNDED,
                     title_align="center",
                     padding=(1, 2),
-                    subtitle="✅ Complete",
+                    subtitle=ui_text("✅ Complete", "Complete"),
                     subtitle_align="right",
                 )
             )
@@ -232,10 +254,10 @@ def create_artifact_table(title: str, repo_id: str, artifacts: list[tuple[str, s
 def create_summary_table(artifacts: list[tuple[str, str, str]]) -> Table:
     """Create a summary table showing all HuggingFace artifacts"""
     table = Table(
-        title="🗂️  Pipeline Artifacts Summary",
+        title=ui_text("🗂️  Pipeline Artifacts Summary", "Pipeline Artifacts Summary"),
         box=ROUNDED,
         title_style="bold magenta",
-        caption="All artifacts have been uploaded to HuggingFace 🤗",
+        caption=ui_text("All artifacts have been uploaded to HuggingFace 🤗", "All artifacts have been uploaded to HuggingFace"),
         caption_style="dim",
     )
     table.add_column("Stage", style="bold")
@@ -254,7 +276,7 @@ def resolve_cfg(cfg):
 
 @hydra.main(version_base=None, config_path="conf", config_name="base")
 def main(cfg: DictConfig) -> None:
-    console = Console()
+    console = Console(emoji=UNICODE_OUTPUT)
     # Track all artifacts for final summary
     artifacts = []
 
@@ -265,9 +287,9 @@ def main(cfg: DictConfig) -> None:
     config_text = [
         "[bold white]Configuration Details[/bold white]",
         "─" * 50,
-        f"[bold]🏷️  Run name:[/bold] {cfg.run_name}",
-        f"[bold]💾 Data path:[/bold] {cfg.data_path}",
-        "[bold]🔄 Active Steps:[/bold] "
+        f"[bold]{ui_text('🏷️  Run name:', 'Run name:')}[/bold] {cfg.run_name}",
+        f"[bold]{ui_text('💾 Data path:', 'Data path:')}[/bold] {cfg.data_path}",
+        f"[bold]{ui_text('🔄 Active Steps:', 'Active Steps:')}[/bold] "
         + " ".join(
             [
                 f"[{STEP_STYLES[step.lower()]}]{step}[/{STEP_STYLES[step.lower()]}]"
@@ -279,7 +301,7 @@ def main(cfg: DictConfig) -> None:
                 if enabled
             ]
         ),
-        f"[bold]📊 Wandb:[/bold] {'[green]enabled[/green]' if cfg.use_wandb else '[red]disabled[/red]'}",
+        f"[bold]{ui_text('📊 Wandb:', 'Wandb:')}[/bold] {'[green]enabled[/green]' if cfg.use_wandb else '[red]disabled[/red]'}",
     ]
     console.print(Panel("\n".join(config_text), box=ROUNDED, style="cyan", padding=(1, 2)))
     console.print(Rule(style="bright_black"))
@@ -313,7 +335,7 @@ def main(cfg: DictConfig) -> None:
                 data_path=cfg.data_path,
             )
 
-            console.print(Panel("🔍 Generating trajectories visualization...", style="blue", box=ROUNDED))
+            console.print(Panel(ui_text("🔍 Generating trajectories visualization...", "Generating trajectories visualization..."), style="blue", box=ROUNDED))
             traj_html = generate_trajectories_html_from_hf(
                 traj_dir=f"{cfg.run_name}/trajectories",
                 repo_id=base_config["inference"]["hf"]["repo_id"],
@@ -347,7 +369,7 @@ def main(cfg: DictConfig) -> None:
                 style="green",
                 data_path=cfg.data_path,
             )
-            console.print(Panel("📝 Generating scripts visualization...", style="green", box=ROUNDED))
+            console.print(Panel(ui_text("📝 Generating scripts visualization...", "Generating scripts visualization..."), style="green", box=ROUNDED))
             scripts_html = generate_scripts_html_from_hf(
                 scripts_file=f"{cfg.run_name}/scripts.jsonl",
                 repo_id=base_config["inference"]["hf"]["repo_id"],
@@ -381,7 +403,7 @@ def main(cfg: DictConfig) -> None:
                 count_pattern=r"Found\s\d+\sissues",  # Add pattern for counting repositories
             )
 
-            console.print(Panel("📊 Generating evaluation visualization...", style="yellow", box=ROUNDED))
+            console.print(Panel(ui_text("📊 Generating evaluation visualization...", "Generating evaluation visualization..."), style="yellow", box=ROUNDED))
             eval_html = generate_logs_html_from_hf(
                 logs_file=f"{cfg.run_name}/results.jsonl",
                 repo_id=base_config["evaluation"]["output"]["hf"]["repo_id"],
@@ -404,9 +426,9 @@ def main(cfg: DictConfig) -> None:
         console.print("\n")
 
     # Print completion message
-    console.print(
-        Panel(
-            Align.center("[bold]🎉 Pipeline completed successfully! 🎉[/bold]"),
+        console.print(
+            Panel(
+            Align.center(f"[bold]{ui_text('🎉 Pipeline completed successfully! 🎉', 'Pipeline completed successfully!')}[/bold]"),
             style="bold green",
             box=DOUBLE,
             padding=(1, 2),
