@@ -114,6 +114,7 @@ class RepoDownloader:
             repo = git.Repo.clone_from(
                 f"https://github.com/{repo_name}",
                 self.get_repo_dir_path(repo_name=repo_name, commit_sha=commit_sha),
+                allow_unsafe_options=True,
                 **clone_kwargs,
             )
             self._prepare_downloaded_repository(repo=repo, commit_sha=commit_sha)
