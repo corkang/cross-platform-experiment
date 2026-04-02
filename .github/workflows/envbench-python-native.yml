@@ -111,6 +111,22 @@ jobs:
         with:
           version: ${{ env.UV_VERSION }}
 
+      - name: Prepare runtime paths
+        shell: bash
+        run: |
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            git config --global core.longpaths true
+            DATA_ROOT="$RUNNER_TEMP/ed"
+            TMP_ROOT="$RUNNER_TEMP/et"
+          else
+            DATA_ROOT="$GITHUB_WORKSPACE/data"
+            TMP_ROOT="$GITHUB_WORKSPACE/tmp"
+          fi
+
+          mkdir -p "$DATA_ROOT" "$TMP_ROOT"
+          echo "DATA_ROOT=$DATA_ROOT" >> "$GITHUB_ENV"
+          echo "TMP_ROOT=$TMP_ROOT" >> "$GITHUB_ENV"
+
       # ── 3. Environment snapshot ─────────────────────────────────
       - name: Record environment snapshot
         shell: bash
@@ -133,6 +149,8 @@ jobs:
             echo "pip:     $(python -m pip --version 2>&1)"
             echo "uv:      $(uv --version 2>&1)"
             echo "pwd:     $(pwd)"
+            echo "DATA_ROOT:${DATA_ROOT}"
+            echo "TMP_ROOT: ${TMP_ROOT}"
             echo ""
             echo "=== Experiment ==="
             echo "EXECUTION_MODE: $EXECUTION_MODE"
@@ -161,8 +179,8 @@ jobs:
       - name: Prepare single-repo manifest
         shell: bash
         run: |
-          mkdir -p "$GITHUB_WORKSPACE/tmp"
-          MANIFEST="$GITHUB_WORKSPACE/tmp/local_manifest.jsonl"
+          mkdir -p "$TMP_ROOT"
+          MANIFEST="$TMP_ROOT/local_manifest.jsonl"
           printf '{"repository": "%s", "revision": "%s"}\n' \
             "${{ matrix.repo.repository }}" \
             "${{ matrix.repo.revision }}" > "$MANIFEST"
@@ -187,15 +205,21 @@ jobs:
             "+fancy_output=false" \
             "inference_workers=1" \
             "eval_workers=1" \
-            "data_path=${GITHUB_WORKSPACE}/data" \
-            "tmp_dir=${GITHUB_WORKSPACE}/tmp" \
+            "data_path=${DATA_ROOT}" \
+            "tmp_dir=${TMP_ROOT}" \
             "traj_repo_id=${HF_TRAJ_REPO_ID}" \
             "inference.data_source.type=local" \
-            "inference.data_source.local.path=${GITHUB_WORKSPACE}/tmp/local_manifest.jsonl" \
+            "inference.data_source.local.path=${TMP_ROOT}/local_manifest.jsonl" \
+            "inference.docker.output_dir=${DATA_ROOT}/repos" \
             "inference.log_trajectory=true" \
             "inference.rewrite_trajectories=true" \
+            "inference.logging_dir=${TMP_ROOT}/trajectories-${RUN_NAME}" \
             "inference.max_concurrent=1" \
             "evaluation.eval_tool=native" \
+            "evaluation.operation.dirs.tmp=${TMP_ROOT}/tmp-${RUN_NAME}" \
+            "evaluation.operation.dirs.repo_data=${DATA_ROOT}/repo-data" \
+            "evaluation.operation.dirs.json_results=${TMP_ROOT}/tmp-${RUN_NAME}/results/json" \
+            "evaluation.operation.dirs.eval_results=${TMP_ROOT}/tmp-${RUN_NAME}/results/eval" \
             "evaluation.operation.pool_config.max_workers=1"
 
       # ── 9. Collect local results ────────────────────────────────
@@ -206,17 +230,17 @@ jobs:
           ARTIFACTS="$GITHUB_WORKSPACE/artifacts"
 
           # Copy trajectories
-          TRAJ_DIR="$GITHUB_WORKSPACE/tmp/trajectories-${RUN_NAME}"
+          TRAJ_DIR="$TMP_ROOT/trajectories-${RUN_NAME}"
           if [ -d "$TRAJ_DIR" ]; then
             cp -r "$TRAJ_DIR" "$ARTIFACTS/trajectories"
           fi
 
           # Copy results from tmp work directories
-          find "$GITHUB_WORKSPACE/tmp" -name "results.jsonl" -exec cp {} "$ARTIFACTS/" \; 2>/dev/null || true
-          find "$GITHUB_WORKSPACE/tmp" -name "scripts.jsonl" -exec cp {} "$ARTIFACTS/" \; 2>/dev/null || true
+          find "$TMP_ROOT" -name "results.jsonl" -exec cp {} "$ARTIFACTS/" \; 2>/dev/null || true
+          find "$TMP_ROOT" -name "scripts.jsonl" -exec cp {} "$ARTIFACTS/" \; 2>/dev/null || true
 
           # Copy any JSON results from evaluation
-          find "$GITHUB_WORKSPACE/tmp" -path "*/results/json/*.json" -exec cp {} "$ARTIFACTS/" \; 2>/dev/null || true
+          find "$TMP_ROOT" -path "*/results/json/*.json" -exec cp {} "$ARTIFACTS/" \; 2>/dev/null || true
 
           # Write job metadata
           cat > "$ARTIFACTS/job_metadata.json" <<METADATA_EOF

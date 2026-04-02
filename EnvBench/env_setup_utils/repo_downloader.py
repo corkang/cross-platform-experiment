@@ -1,3 +1,4 @@
+import hashlib
 import logging
 import os
 import shutil
@@ -24,6 +25,9 @@ class RepoDownloader:
         return os.path.join(self.output_dir, self.get_repo_dir_name(repo_name, commit_sha))
 
     def get_repo_dir_name(self, repo_name: str, commit_sha: str) -> str:
+        if os.name == "nt":
+            repo_hash = hashlib.sha1(repo_name.encode("utf-8")).hexdigest()[:10]
+            return f"r_{repo_hash}_{commit_sha[:12]}"
         return f"{repo_name.replace('/', '__')}@{commit_sha}"
 
     def _prepare_downloaded_repository(self, repo: git.Repo, commit_sha: str) -> None:
@@ -92,7 +96,9 @@ class RepoDownloader:
             try:
                 if os.path.exists(local_path):
                     os.remove(local_path)
-                shutil.rmtree(os.path.join(self.output_dir, f"repos/{self.language}"))
+                extracted_dir = self.get_repo_dir_path(repo_name=repo_name, commit_sha=commit_sha)
+                if os.path.exists(extracted_dir):
+                    shutil.rmtree(extracted_dir)
             except Exception as e:
                 logging.warning(f"Couldn't clean remaining files for {repo_name}@{commit_sha} downloaded from HF.")
                 logging.exception(e)
@@ -102,8 +108,13 @@ class RepoDownloader:
 
     def _download_github(self, repo_name: str, commit_sha: str) -> bool:
         try:
+            clone_kwargs = {}
+            if os.name == "nt":
+                clone_kwargs["multi_options"] = ["--config", "core.longpaths=true"]
             repo = git.Repo.clone_from(
-                f"https://github.com/{repo_name}", self.get_repo_dir_path(repo_name=repo_name, commit_sha=commit_sha)
+                f"https://github.com/{repo_name}",
+                self.get_repo_dir_path(repo_name=repo_name, commit_sha=commit_sha),
+                **clone_kwargs,
             )
             self._prepare_downloaded_repository(repo=repo, commit_sha=commit_sha)
             return True

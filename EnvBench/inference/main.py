@@ -151,12 +151,18 @@ async def run_experiment(cfg: DictConfig):
 
     if cfg_model.hf.upload:
         hf_api = HfApi()
-        hf_api.upload_folder(
-            folder_path=cfg_model.logging_dir,
-            path_in_repo=os.path.join(cfg_model.hf.path_in_repo, "trajectories"),
-            repo_id=cfg_model.hf.repo_id,
-            repo_type="dataset",
-        )
+        if os.path.isdir(cfg_model.logging_dir):
+            hf_api.upload_folder(
+                folder_path=cfg_model.logging_dir,
+                path_in_repo=os.path.join(cfg_model.hf.path_in_repo, "trajectories"),
+                repo_id=cfg_model.hf.repo_id,
+                repo_type="dataset",
+            )
+        else:
+            logging.warning(
+                "Skipping trajectories upload because logging_dir does not exist: "
+                f"{cfg_model.logging_dir}"
+            )
 
         try:
             config_name = hydra.core.config_store.ConfigSource.config_name
