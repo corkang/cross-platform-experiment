@@ -521,13 +521,15 @@ def main(cfg: DictConfig) -> None:
 
     # Save to huggingface if necessary
     if cfg.output.mode == "hf":
-        # Upload results
-        upload_file(
-            path_or_fileobj=jsonl_path,
-            path_in_repo=os.path.join(cfg.output.hf.path_in_repo, "results.jsonl"),
-            repo_id=cfg.output.hf.repo_id,
-            repo_type="dataset",
-        )
+        try:
+            upload_file(
+                path_or_fileobj=jsonl_path,
+                path_in_repo=os.path.join(cfg.output.hf.path_in_repo, "results.jsonl"),
+                repo_id=cfg.output.hf.repo_id,
+                repo_type="dataset",
+            )
+        except Exception as e:
+            logging.warning(f"HF results upload failed (non-fatal): {e}")
 
         # Remove jsonl if required
         if not cfg.output.keep_local_jsonl:
