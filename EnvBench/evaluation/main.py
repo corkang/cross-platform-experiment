@@ -36,7 +36,7 @@ class ScriptExceptionError(Exception):
 def read_script(script_name: str) -> str:
     """Read a bash script from the scripts directory."""
     script_path = Path(__file__).parent / "scripts" / script_name
-    with open(script_path, "r") as f:
+    with open(script_path, "r", encoding="utf-8") as f:
         return f.read()
 
 
