@@ -91,35 +91,54 @@ def parse_script_from_trajectory(trajectory: List[Dict[str, Any]]) -> str:
     return "\n".join(format_command(command) for command in commands)
 
 
-def process_trajectories_to_scripts(trajectories_dataset: str, input_trajectories_dir: str, local_output_path: str | None = None):
+def process_trajectories_to_scripts(
+    trajectories_dataset: str,
+    input_trajectories_dir: str,
+    local_output_path: str | None = None,
+    local_trajectories_dir: str | None = None,
+):
     scripts = []
     with tempfile.TemporaryDirectory() as temp_dir:
-        for trajectory_file in tqdm(
-            list_repo_tree(
-                trajectories_dataset, os.path.join(input_trajectories_dir, "trajectories"), repo_type="dataset"
-            )
-        ):
-            file_path = hf_hub_download(
-                repo_id=trajectories_dataset,
-                filename=trajectory_file.path,
-                repo_type="dataset",
-                local_dir=temp_dir,
-            )
-
-            with jsonlines.open(file_path, "r") as reader:
-                trajectory = [line for line in reader]
-            repository, revision = os.path.basename(trajectory_file.path[: -len(".jsonl")]).split("@")
-            script = parse_script_from_trajectory(trajectory)
-            if not script:
-                script = parse_installamatic_trajectory(trajectory)
-
-            scripts.append(
-                {
+        # Collect trajectory files from local dir or HF
+        if local_trajectories_dir and os.path.isdir(local_trajectories_dir):
+            import glob
+            trajectory_files = sorted(glob.glob(os.path.join(local_trajectories_dir, "*.jsonl")))
+            for file_path in tqdm(trajectory_files):
+                with jsonlines.open(file_path, "r") as reader:
+                    trajectory = [line for line in reader]
+                basename = os.path.basename(file_path[: -len(".jsonl")])
+                repository, revision = basename.split("@")
+                script = parse_script_from_trajectory(trajectory)
+                if not script:
+                    script = parse_installamatic_trajectory(trajectory)
+                scripts.append({
                     "repository": repository.replace("__", "/"),
                     "revision": revision,
                     "script": script,
-                }
-            )
+                })
+        else:
+            for trajectory_file in tqdm(
+                list_repo_tree(
+                    trajectories_dataset, os.path.join(input_trajectories_dir, "trajectories"), repo_type="dataset"
+                )
+            ):
+                file_path = hf_hub_download(
+                    repo_id=trajectories_dataset,
+                    filename=trajectory_file.path,
+                    repo_type="dataset",
+                    local_dir=temp_dir,
+                )
+                with jsonlines.open(file_path, "r") as reader:
+                    trajectory = [line for line in reader]
+                repository, revision = os.path.basename(trajectory_file.path[: -len(".jsonl")]).split("@")
+                script = parse_script_from_trajectory(trajectory)
+                if not script:
+                    script = parse_installamatic_trajectory(trajectory)
+                scripts.append({
+                    "repository": repository.replace("__", "/"),
+                    "revision": revision,
+                    "script": script,
+                })
 
         with jsonlines.open(f"{temp_dir}/scripts.jsonl", "w") as writer:
             writer.write_all(scripts)

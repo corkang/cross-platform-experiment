@@ -379,12 +379,14 @@ def main(cfg: DictConfig) -> None:
                 )
             console.print(create_step_header("Processing", 2, "green"))
             local_scripts_path = os.path.join(cfg.tmp_dir, f"scripts-{cfg.run_name}", "scripts.jsonl")
+            local_traj_dir = base_config["inference"].get("logging_dir")
             run_command_with_progress(
                 process_trajectories_to_scripts,
                 (
                     base_config["inference"]["hf"]["repo_id"],
                     cfg.run_name,
                     local_scripts_path,
+                    local_traj_dir,
                 ),
                 "Processing trajectories...",
                 progress,
