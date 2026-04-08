@@ -307,7 +307,7 @@ def run_native(
     if not is_downloaded:
         logging.error(f"[native] Failed to download repository {repo_name}")
         json_result["exit_code"] = cfg.exit_codes.download_failure
-        with open(json_path, "w") as f:
+        with open(json_path, "w", encoding="utf-8") as f:
             json.dump(json_result, f)
         return json_result
 
@@ -316,7 +316,7 @@ def run_native(
 
     # bootstrap 스크립트 작성
     bootstrap_path = os.path.join(repo_path, "bootstrap_script.sh")
-    with open(bootstrap_path, "w") as f:
+    with open(bootstrap_path, "w", encoding="utf-8") as f:
         f.write(bootstrap_script)
     os.chmod(
         bootstrap_path,
@@ -336,7 +336,7 @@ def run_native(
 
     build_script_content = build_script_functions[cfg.language]()
     build_path = os.path.join(repo_path, "build.sh")
-    with open(build_path, "w") as f:
+    with open(build_path, "w", encoding="utf-8") as f:
         f.write(build_script_content)
     os.chmod(
         build_path,
@@ -368,7 +368,7 @@ def run_native(
         # build_output/results.json 읽기
         results_path = os.path.join(repo_path, "build_output", "results.json")
         if os.path.exists(results_path):
-            with open(results_path) as f:
+            with open(results_path, encoding="utf-8") as f:
                 build_results = json.load(f)
             for key in build_results:
                 json_result[key] = build_results[key]
@@ -394,7 +394,7 @@ def run_native(
         logging.info(f"[native] Total execution time: {json_result['execution_time']:.2f}s")
 
         # 결과 JSON 저장 (성공/실패 무관하게 항상)
-        with open(json_path, "w") as f:
+        with open(json_path, "w", encoding="utf-8") as f:
             json.dump(json_result, f)
 
         # cleanup
