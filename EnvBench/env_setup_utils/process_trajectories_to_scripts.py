@@ -129,12 +129,15 @@ def process_trajectories_to_scripts(trajectories_dataset: str, input_trajectorie
             os.makedirs(os.path.dirname(local_output_path), exist_ok=True)
             shutil.copy2(f"{temp_dir}/scripts.jsonl", local_output_path)
 
-        upload_file(
-            path_in_repo=os.path.join(input_trajectories_dir, "scripts.jsonl"),
-            path_or_fileobj=f"{temp_dir}/scripts.jsonl",
-            repo_id=trajectories_dataset,
-            repo_type="dataset",
-        )
+        try:
+            upload_file(
+                path_in_repo=os.path.join(input_trajectories_dir, "scripts.jsonl"),
+                path_or_fileobj=f"{temp_dir}/scripts.jsonl",
+                repo_id=trajectories_dataset,
+                repo_type="dataset",
+            )
+        except Exception as e:
+            logging.warning(f"HF scripts upload failed (non-fatal): {e}")
 
 
 if __name__ == "__main__":

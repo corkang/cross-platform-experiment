@@ -151,59 +151,54 @@ async def run_experiment(cfg: DictConfig):
 
     if cfg_model.hf.upload:
         hf_api = HfApi()
-        if os.path.isdir(cfg_model.logging_dir):
-            try:
+        try:
+            if os.path.isdir(cfg_model.logging_dir):
                 hf_api.upload_folder(
                     folder_path=cfg_model.logging_dir,
                     path_in_repo=os.path.join(cfg_model.hf.path_in_repo, "trajectories"),
                     repo_id=cfg_model.hf.repo_id,
                     repo_type="dataset",
                 )
-            except Exception as e:
-                logging.warning(f"HF trajectory upload failed (non-fatal): {e}")
-        else:
-            logging.warning(
-                "Skipping trajectories upload because logging_dir does not exist: "
-                f"{cfg_model.logging_dir}"
-            )
-
-        try:
-            config_name = hydra.core.config_store.ConfigSource.config_name
-            if not config_name.endswith(".yaml"):
-                config_name += ".yaml"
-
-            if os.path.exists(f"configs/{config_name}"):
-                path = f"configs/{config_name}"
             else:
-                path = f"inference/configs/{config_name}"
-            hf_api.upload_file(
-                path_or_fileobj=path,
-                path_in_repo=os.path.join(cfg_model.hf.path_in_repo, "config.yaml"),
-                repo_id=cfg_model.hf.repo_id,
-                repo_type="dataset",
-            )
-        except (ValueError, AttributeError):
-            logging.error(
-                f"Couldn't access the config to upload to {os.path.join(cfg_model.hf.path_in_repo, 'config.yaml')}."
-            )
+                logging.warning(
+                    "Skipping trajectories upload because logging_dir does not exist: "
+                    f"{cfg_model.logging_dir}"
+                )
 
-        try:
-            with tempfile.TemporaryDirectory() as temp_dir:
-                temp_file_path = os.path.join(temp_dir, "tempfile.txt")
-                with open(temp_file_path, "w") as temp_file:
-                    temp_file.write(subprocess.check_output(["git", "rev-parse", "HEAD"]).strip().decode("utf-8"))
-
+            try:
+                config_name = hydra.core.config_store.ConfigSource.config_name
+                if not config_name.endswith(".yaml"):
+                    config_name += ".yaml"
+                path = f"configs/{config_name}" if os.path.exists(f"configs/{config_name}") else f"inference/configs/{config_name}"
                 hf_api.upload_file(
-                    path_or_fileobj=temp_file_path,
-                    path_in_repo=os.path.join(cfg_model.hf.path_in_repo, "commit_hash.txt"),
+                    path_or_fileobj=path,
+                    path_in_repo=os.path.join(cfg_model.hf.path_in_repo, "config.yaml"),
                     repo_id=cfg_model.hf.repo_id,
                     repo_type="dataset",
                 )
-        except subprocess.CalledProcessError:
-            logging.error(
-                "Couldn't access the current commit to upload to "
-                f"{os.path.join(cfg_model.hf.path_in_repo, 'commit_hash.txt')}."
-            )
+            except (ValueError, AttributeError):
+                logging.error(
+                    f"Couldn't access the config to upload to {os.path.join(cfg_model.hf.path_in_repo, 'config.yaml')}."
+                )
+
+            try:
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    temp_file_path = os.path.join(temp_dir, "tempfile.txt")
+                    with open(temp_file_path, "w") as temp_file:
+                        temp_file.write(subprocess.check_output(["git", "rev-parse", "HEAD"]).strip().decode("utf-8"))
+                    hf_api.upload_file(
+                        path_or_fileobj=temp_file_path,
+                        path_in_repo=os.path.join(cfg_model.hf.path_in_repo, "commit_hash.txt"),
+                        repo_id=cfg_model.hf.repo_id,
+                        repo_type="dataset",
+                    )
+            except subprocess.CalledProcessError:
+                logging.error(
+                    "Couldn't access the current commit to upload to "
+                    f"{os.path.join(cfg_model.hf.path_in_repo, 'commit_hash.txt')}."
+                )
+        except Exception as e:
+            logging.warning(f"HF upload failed (non-fatal): {e}")
 
 
 @hydra.main(version_base="1.1", config_path="configs", config_name="run_inference_py")
