@@ -415,14 +415,14 @@ eval_tools = {
 def main(cfg: DictConfig) -> None:
     # Draw the repos names&revisions to run a script on
     if cfg.input.mode == "local":
-        repos = pd.read_json(to_absolute_path(cfg.input.local), orient="records", lines=True)
+        repos = pd.read_json(to_absolute_path(cfg.input.local), orient="records", lines=True, convert_dates=False)
     elif cfg.input.mode == "hf":
         local_path = hf_hub_download(
             repo_id=cfg.input.hf.repo_id,
             repo_type="dataset",
             filename=cfg.input.hf.path_in_repo,
         )
-        repos = pd.read_json(to_absolute_path(local_path), orient="records", lines=True)
+        repos = pd.read_json(to_absolute_path(local_path), orient="records", lines=True, convert_dates=False)
     else:
         raise ValueError("Unknown input source; supported are: 'local' and 'hf'.")
     logging.info(f"Got {len(repos)} repos to process.")
