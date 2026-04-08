@@ -80,8 +80,8 @@ jobs:
       matrix:
         os:
           - { runs_on: windows-2022,  target_os: windows }
-          # - { runs_on: ubuntu-22.04,  target_os: linux   }
-          # - { runs_on: macos-14,      target_os: macos   }
+          - { runs_on: ubuntu-22.04,  target_os: linux   }
+          - { runs_on: macos-14,      target_os: macos   }
         # Derived from manifests/selected_repos.jsonl via prepare-matrix job
         repo: ${{ fromJson(needs.prepare-matrix.outputs.repo-matrix) }}
 
