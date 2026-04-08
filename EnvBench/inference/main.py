@@ -152,12 +152,15 @@ async def run_experiment(cfg: DictConfig):
     if cfg_model.hf.upload:
         hf_api = HfApi()
         if os.path.isdir(cfg_model.logging_dir):
-            hf_api.upload_folder(
-                folder_path=cfg_model.logging_dir,
-                path_in_repo=os.path.join(cfg_model.hf.path_in_repo, "trajectories"),
-                repo_id=cfg_model.hf.repo_id,
-                repo_type="dataset",
-            )
+            try:
+                hf_api.upload_folder(
+                    folder_path=cfg_model.logging_dir,
+                    path_in_repo=os.path.join(cfg_model.hf.path_in_repo, "trajectories"),
+                    repo_id=cfg_model.hf.repo_id,
+                    repo_type="dataset",
+                )
+            except Exception as e:
+                logging.warning(f"HF trajectory upload failed (non-fatal): {e}")
         else:
             logging.warning(
                 "Skipping trajectories upload because logging_dir does not exist: "
